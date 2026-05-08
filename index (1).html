@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeksScope — Detektor Teks AI</title>
+  <meta name="description" content="Tool analisis heuristik untuk mendeteksi apakah sebuah teks ditulis oleh AI atau manusia. Dibuat berdasarkan penelitian independen terhadap beberapa model AI." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0c0e;
+      --bg2: #131316;
+      --bg3: #1a1a1e;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #e8e8e6;
+      --muted: #888885;
+      --accent: #EF9F27;
+      --accent-dim: rgba(239,159,39,0.12);
+      --accent-dim2: rgba(239,159,39,0.06);
+      --green: #5DCAA5;
+      --green-dim: rgba(93,202,165,0.1);
+      --red: #E24B4A;
+      --red-dim: rgba(226,75,74,0.1);
+      --amber-dim: rgba(239,159,39,0.15);
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12,12,14,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* SECTIONS */
+    section { padding: 5rem 0; }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 2rem; }
+
+    /* HERO */
+    #hero {
+      padding: 6rem 0 5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(239,159,39,0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+    }
+    h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 2rem;
+    }
+    .btn-primary {
+      display: inline-block;
+      background: var(--accent);
+      color: #1a0e00;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary {
+      display: inline-block;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 10px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin-left: 1rem;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--border2); }
+    .hero-stat-row {
+      display: flex;
+      gap: 2rem;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .hero-stat { }
+    .hero-stat-num {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--accent);
+      display: block;
+    }
+    .hero-stat-label { font-size: 12px; color: var(--muted); }
+
+    /* SECTION HEADINGS */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    .section-intro {
+      color: var(--muted);
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+
+    /* BACKGROUND */
+    #background { border-bottom: 1px solid var(--border); }
+    .prose p { color: var(--muted); margin-bottom: 1rem; }
+    .prose p:last-child { margin-bottom: 0; }
+    .prose strong { color: var(--text); font-weight: 500; }
+
+    /* HOW IT WORKS */
+    #how { border-bottom: 1px solid var(--border); }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    @media (max-width: 580px) { .metrics-grid { grid-template-columns: 1fr; } }
+    .metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      transition: border-color 0.2s;
+    }
+    .metric-card:hover { border-color: var(--border2); }
+    .metric-icon {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 3px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.75rem;
+    }
+    .metric-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .metric-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* DEMO */
+    #demo { border-bottom: 1px solid var(--border); }
+    .demo-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      line-height: 1.6;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+    .demo-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .btn-analyze {
+      background: var(--accent);
+      color: #1a0e00;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-analyze:hover { opacity: 0.85; }
+    .results { margin-top: 1.5rem; }
+    .verdict-box {
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid;
+    }
+    .verdict-ai { background: var(--red-dim); border-color: rgba(226,75,74,0.3); }
+    .verdict-human { background: var(--green-dim); border-color: rgba(93,202,165,0.3); }
+    .verdict-mixed { background: var(--amber-dim); border-color: rgba(239,159,39,0.3); }
+    .verdict-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .verdict-ai .verdict-label { color: var(--red); }
+    .verdict-human .verdict-label { color: var(--green); }
+    .verdict-mixed .verdict-label { color: var(--accent); }
+    .verdict-score { font-family: var(--mono); font-size: 2rem; font-weight: 700; margin-bottom: 4px; }
+    .verdict-ai .verdict-score { color: var(--red); }
+    .verdict-human .verdict-score { color: var(--green); }
+    .verdict-mixed .verdict-score { color: var(--accent); }
+    .verdict-desc { font-size: 13px; color: var(--muted); }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 480px) { .result-grid { grid-template-columns: 1fr; } }
+    .result-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem 1rem;
+    }
+    .result-name { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+    .result-val { font-family: var(--mono); font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .result-signal { font-size: 11px; }
+    .sig-ai { color: var(--red); }
+    .sig-human { color: var(--green); }
+    .sig-neutral { color: var(--muted); }
+    .bar-track { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 2px; }
+    .phrase-section {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .phrase-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 8px; }
+    .phrase-tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin: 2px 3px 2px 0;
+      background: var(--red-dim);
+      border: 1px solid rgba(226,75,74,0.25);
+      color: #f09595;
+    }
+    .empty-result {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .disclaimer {
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* FINDINGS */
+    #findings { border-bottom: 1px solid var(--border); }
+    .findings-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 14px;
+    }
+    .findings-table th {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border2);
+    }
+    .findings-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: middle;
+    }
+    .findings-table td:first-child { color: var(--text); font-weight: 500; }
+    .score-pill {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .score-low { background: var(--green-dim); color: var(--green); border: 1px solid rgba(93,202,165,0.25); }
+    .score-mid { background: var(--amber-dim); color: var(--accent); border: 1px solid rgba(239,159,39,0.25); }
+    .finding-note {
+      background: var(--bg2);
+      border-left: 3px solid var(--accent);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin-top: 1.5rem;
+    }
+    .finding-note p { font-size: 14px; color: var(--muted); }
+    .finding-note strong { color: var(--text); }
+
+    /* LIMITATIONS */
+    #limitations { border-bottom: 1px solid var(--border); }
+    .limit-list { list-style: none; margin-top: 1.5rem; }
+    .limit-list li {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .limit-list li:last-child { border-bottom: none; }
+    .limit-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .limit-list strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 14px; }
+
+    /* ROADMAP */
+    .roadmap { margin-top: 2rem; }
+    .road-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .road-item:last-child { border-bottom: none; }
+    .road-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .tag-planned { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(239,159,39,0.2); }
+    .tag-research { background: var(--bg3); color: var(--muted); border: 1px solid var(--border); }
+    .road-text { font-size: 14px; color: var(--muted); }
+    .road-text strong { color: var(--text); display: block; font-size: 14px; margin-bottom: 2px; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 0;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .footer-info { font-size: 13px; color: var(--muted); }
+    .footer-info a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--border); }
+    .footer-info a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">TeksScope_</a>
+  <div class="nav-links">
+    <a href="#how">Cara Kerja</a>
+    <a href="#demo">Demo</a>
+    <a href="#findings">Findings</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="badge">RESEARCH PROJECT · v0.1</div>
+    <h1>Apakah teks ini<br />ditulis oleh <span>AI</span>?</h1>
+    <p class="hero-sub">
+      TeksScope menganalisis pola statistik teks — burstiness, phrase fingerprint, dan marker informal — untuk mendeteksi kemungkinan teks dihasilkan oleh model bahasa.
+    </p>
+    <a href="#demo" class="btn-primary">Coba sekarang</a>
+    <a href="#how" class="btn-secondary">Cara kerja</a>
+    <div class="hero-stat-row">
+      <div class="hero-stat">
+        <span class="hero-stat-num">4</span>
+        <span class="hero-stat-label">Model yang diuji</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">4</span>
+        <span class="hero-stat-label">Metrik heuristik</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">0</span>
+        <span class="hero-stat-label">Dependensi eksternal</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BACKGROUND -->
+<section id="background">
+  <div class="container">
+    <p class="section-label">// LATAR BELAKANG</p>
+    <h2>Era AI di ruang kelas</h2>
+    <div class="prose">
+      <p>
+        Di era sekarang, <strong>penggunaan AI untuk menjawab soal ujian sudah menjadi hal yang lumrah</strong> — terutama di tingkat SMA dan SMK. Model seperti ChatGPT, Gemini, dan Claude dapat menghasilkan jawaban yang tampak komprehensif dalam hitungan detik.
+      </p>
+      <p>
+        Masalahnya, detektor AI yang ada seperti GPTZero membutuhkan koneksi ke server eksternal, berbayar, dan tidak dioptimalkan untuk konteks Bahasa Indonesia. Proyek ini adalah eksperimen untuk menjawab: <strong>seberapa jauh kita bisa mendeteksi teks AI hanya dengan analisis pola di sisi klien</strong>, tanpa model ML, tanpa API, tanpa internet.
+      </p>
+      <p>
+        Pendekatan ini terinspirasi dari cara kerja LLM itu sendiri. Model bahasa memprediksi token berikutnya berdasarkan probabilitas tertinggi — artinya output-nya cenderung <strong>"aman" dan teratur</strong>. Manusia, sebaliknya, membuat pilihan kata yang lebih acak, emosional, dan tidak konsisten.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <p class="section-label">// CARA KERJA</p>
+    <h2>Empat heuristik analisis</h2>
+    <p class="section-intro">
+      Tidak ada model ML di sini. Semua analisis berjalan di browser menggunakan empat metrik yang berasal dari penelitian NLP tentang perplexity dan burstiness.
+    </p>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-icon">01 · BURSTINESS</span>
+        <h3>Variasi panjang kalimat</h3>
+        <p>Standar deviasi dari panjang tiap kalimat. AI menghasilkan kalimat yang seragam karena memilih token berprobabilitas tinggi. Manusia tidak konsisten — kadang satu kata, kadang satu paragraf.</p>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">02 · SENTENCE LENGTH</span>
+        <h3>Rata-rata panjang kalimat</h3>
+        <p>AI yang dilatih pada data akademis cenderung menulis kalimat panjang dan terstruktur. Pelajar biasanya menulis lebih pendek, langsung, dan kadang tidak selesai.</p>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">03 · PHRASE FINGERPRINT</span>
+        <h3>Frasa khas AI</h3>
+        <p>Frasa transisi seperti "furthermore", "perlu diperhatikan", "dapat disimpulkan" sangat sering muncul di output AI. Model belajar dari data akademis yang penuh frasa formulaik ini.</p>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">04 · INFORMAL MARKERS</span>
+        <h3>Penanda bahasa informal</h3>
+        <p>Kata gaul, singkatan, dan ekspresi spontan seperti "gak", "sih", "btw", "wkwk" hampir tidak pernah muncul di output AI secara natural. Kehadirannya adalah sinyal manusia.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section id="demo">
+  <div class="container">
+    <p class="section-label">// DEMO</p>
+    <h2>Coba langsung</h2>
+    <p class="section-intro">Paste teks apapun — jawaban ujian, esai, atau paragraf yang ingin kamu analisis.</p>
+    <div class="demo-box">
+      <textarea id="textInput" placeholder="Paste teks di sini..."></textarea>
+      <div class="demo-meta" id="wordCount">0 kata · 0 kalimat</div>
+      <button class="btn-analyze" onclick="analyze()">▶ Analisis teks</button>
+      <div class="results" id="results">
+        <div class="empty-result">— masukkan teks untuk memulai —</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINDINGS -->
+<section id="findings">
+  <div class="container">
+    <p class="section-label">// FINDINGS</p>
+    <h2>Hasil pengujian manual</h2>
+    <p class="section-intro">
+      Beberapa model diuji menggunakan pertanyaan yang sama. Hasilnya menunjukkan pola yang menarik.
+    </p>
+    <table class="findings-table">
+      <thead>
+        <tr>
+          <th>MODEL / SUMBER</th>
+          <th>SKOR AI TERDETEKSI</th>
+          <th>KETERANGAN</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ChatGPT (behavior adjusted)</td>
+          <td><span class="score-pill score-low">~20%</span></td>
+          <td>System prompt informal membuat burstiness naik dan phrase fingerprint bersih.</td>
+        </tr>
+        <tr>
+          <td>Gemini Flash</td>
+          <td><span class="score-pill score-low">~20%</span></td>
+          <td>Output cenderung pendek dan kurang formulaik. Lolos dari sebagian besar heuristik.</td>
+        </tr>
+        <tr>
+          <td>Gemini Thinking</td>
+          <td><span class="score-pill score-low">~25%</span></td>
+          <td>Sedikit lebih terstruktur dari Flash, tapi masih di bawah threshold.</td>
+        </tr>
+        <tr>
+          <td>Gemini Pro</td>
+          <td><span class="score-pill score-mid">~40%</span></td>
+          <td>Lebih verbose dan formulaik. Phrase fingerprint mulai terdeteksi.</td>
+        </tr>
+        <tr>
+          <td>Ringkasan artikel oleh AI</td>
+          <td><span class="score-pill score-mid">~40%</span></td>
+          <td>Kosakata kaya dari sumber asli, tapi struktur dan frasa transisi dari AI.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="finding-note">
+      <p>
+        <strong>Temuan paling menarik:</strong> ringkasan artikel yang dibuat AI mendapat skor ~40% meskipun kosakatanya kaya. Ini karena terjadi sinyal campuran — TTR tinggi dari sumber asli, tapi frasa transisi dan panjang kalimat tetap menunjukkan pola AI. Ini adalah <strong>celah yang menarik</strong> untuk dikembangkan sebagai fitur deteksi berikutnya.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- LIMITATIONS & ROADMAP -->
+<section id="limitations">
+  <div class="container">
+    <p class="section-label">// LIMITASI & ROADMAP</p>
+    <h2>Jujur soal kelemahan</h2>
+    <p class="section-intro">
+      Ini adalah heuristik, bukan oracle. Beberapa hal yang perlu diketahui sebelum menggunakannya sebagai dasar keputusan.
+    </p>
+    <ul class="limit-list">
+      <li>
+        <span class="limit-num">01</span>
+        <div>
+          <strong>Mudah di-bypass dengan instruksi informal</strong>
+          Model AI yang diberi sistem prompt "tulis seperti pelajar SMA" akan langsung menaikkan burstiness dan memasukkan kata informal. Heuristik permukaan tidak bisa melawan ini.
+        </div>
+      </li>
+      <li>
+        <span class="limit-num">02</span>
+        <div>
+          <strong>False positive pada penulis rapi</strong>
+          Manusia yang menulis dengan gaya formal dan terstruktur bisa terdeteksi sebagai AI. Tool ini tidak untuk menghakimi, tapi sebagai indikasi awal.
+        </div>
+      </li>
+      <li>
+        <span class="limit-num">03</span>
+        <div>
+          <strong>Tidak ada baseline data pelajar</strong>
+          Akurasi bisa meningkat signifikan jika ada dataset berlabel jawaban asli pelajar SMA/SMK Indonesia. Pengembangan ke arah supervised classification sedang dipertimbangkan.
+        </div>
+      </li>
+      <li>
+        <span class="limit-num">04</span>
+        <div>
+          <strong>Kamus frasa masih terbatas</strong>
+          Daftar AI phrase fingerprint saat ini mencakup ~35 frasa. Bisa diperluas jauh lebih banyak, terutama untuk konteks mata pelajaran tertentu.
+        </div>
+      </li>
+    </ul>
+
+    <div class="roadmap">
+      <p style="font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 1rem;">RENCANA PENGEMBANGAN</p>
+      <div class="road-item">
+        <span class="road-tag tag-planned">PLANNED</span>
+        <div class="road-text">
+          <strong>Highlight in-text</strong>
+          Frasa mencurigakan di-highlight langsung di dalam teks input, bukan hanya dilaporkan.
+        </div>
+      </div>
+      <div class="road-item">
+        <span class="road-tag tag-planned">PLANNED</span>
+        <div class="road-text">
+          <strong>Kamus frasa yang lebih luas</strong>
+          Tambah frasa khas per mata pelajaran (Biologi, Sejarah, PKn) yang sering dihasilkan AI.
+        </div>
+      </div>
+      <div class="road-item">
+        <span class="road-tag tag-research">RESEARCH</span>
+        <div class="road-text">
+          <strong>Dataset pelajar Indonesia</strong>
+          Pengumpulan sampel jawaban asli pelajar SMA/SMK sebagai baseline untuk supervised classification.
+        </div>
+      </div>
+      <div class="road-item">
+        <span class="road-tag tag-research">RESEARCH</span>
+        <div class="road-text">
+          <strong>Deteksi teks hybrid</strong>
+          Teks yang ditulis manusia lalu dipoles AI — salah satu pola yang paling sulit dideteksi dan paling umum dipakai.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-logo">TeksScope_</span>
+      <div class="footer-info">
+        Open source · dibuat untuk keperluan portofolio &amp; penelitian ·
+        <a href="https://github.com" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const AI_PHRASES = [
+  "it is important to note","furthermore","moreover","in conclusion","to conclude",
+  "it is worth noting","on the other hand","in summary","in addition","nevertheless",
+  "as a result","therefore","thus","consequently","in other words",
+  "first and foremost","last but not least","it goes without saying","needless to say",
+  "in today's world","in the modern era","throughout history","it is clear that",
+  "perlu diperhatikan","selain itu","dengan demikian","sebagai kesimpulan","di sisi lain",
+  "penting untuk","secara keseluruhan","pada dasarnya","oleh karena itu","hal ini menunjukkan",
+  "dapat disimpulkan","sebagai tambahan","tidak kalah penting","perlu dicatat","dalam rangka",
+  "di samping itu","dengan kata lain","berdasarkan hal tersebut","sangat penting untuk",
+  "sebagai penutup","dalam konteks","dari uraian di atas","berdasarkan penjelasan"
+];
+
+const INFORMAL_MARKERS = [
+  "gak","ga","nggak","gimana","kalo","emang","banget","sih","dong","deh","nih",
+  "kayak","buat","terus","trus","abis","makanya","soalnya","pokoknya","udah",
+  "btw","lol","haha","wkwk","kok","yg","yah","duh","aduh","wah","hmm",
+  "gonna","wanna","kinda","sorta","cuz","coz","tbh","idk","ngl"
+];
+
+function tokenize(t) { return t.toLowerCase().match(/\b\w+\b/g) || []; }
+function getSentences(t) { return t.split(/[.!?]+/).map(s=>s.trim()).filter(s=>s.length>3); }
+function stdDev(arr) {
+  if (arr.length < 2) return 0;
+  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+  return Math.sqrt(arr.reduce((s,v)=>s+Math.pow(v-mean,2),0)/arr.length);
+}
+
+document.getElementById('textInput').addEventListener('input', function() {
+  const words = tokenize(this.value);
+  const sents = getSentences(this.value);
+  document.getElementById('wordCount').textContent = `${words.length} kata · ${sents.length} kalimat`;
+});
+
+function analyze() {
+  const text = document.getElementById('textInput').value.trim();
+  const el = document.getElementById('results');
+  if (text.length < 30) {
+    el.innerHTML = '<div class="empty-result">— teks terlalu pendek, minimal 30 karakter —</div>';
+    return;
+  }
+  const words = tokenize(text);
+  const sents = getSentences(text);
+  const sentLens = sents.map(s => tokenize(s).length);
+  const avgLen = sentLens.length ? sentLens.reduce((a,b)=>a+b,0)/sentLens.length : 0;
+  const burst = stdDev(sentLens);
+  const ttr = words.length ? (new Set(words).size / words.length) * 100 : 0;
+  const lower = text.toLowerCase();
+  const phrases = AI_PHRASES.filter(p => lower.includes(p));
+  const informal = INFORMAL_MARKERS.filter(m => new RegExp('\\b'+m+'\\b','i').test(text)).length;
+
+  let score = 30;
+  if (burst < 3 && sents.length > 2) score += 30; else if (burst > 7) score -= 20;
+  if (avgLen > 18) score += 20; else if (avgLen < 10) score -= 10;
+  if (phrases.length >= 3) score += 35; else if (phrases.length >= 1) score += 15;
+  if (informal >= 3) score -= 30; else if (informal >= 1) score -= 10;
+  score = Math.max(0, Math.min(100, score));
+
+  let vClass, vLabel, vDesc;
+  if (score >= 65) {
+    vClass='verdict-ai'; vLabel='KEMUNGKINAN AI';
+    vDesc='Pola menunjukkan ciri generasi AI — kalimat teratur, frasa formulaik, variasi rendah.';
+  } else if (score <= 35) {
+    vClass='verdict-human'; vLabel='KEMUNGKINAN MANUSIA';
+    vDesc='Pola menunjukkan variasi alami dan ekspresi yang tidak teratur — khas tulisan manusia.';
+  } else {
+    vClass='verdict-mixed'; vLabel='SINYAL CAMPURAN';
+    vDesc='Bisa manusia yang menulis rapi, atau AI yang diinstruksikan informal.';
+  }
+
+  function sig(cond1, cond2, t1, t2, t3) {
+    if (cond1) return `<span class="sig-ai">↑ ${t1}</span>`;
+    if (cond2) return `<span class="sig-human">↑ ${t2}</span>`;
+    return `<span class="sig-neutral">— ${t3}</span>`;
+  }
+
+  const bPct = Math.min(100, (burst / 15) * 100);
+  const bColor = burst < 3 ? '#E24B4A' : burst > 7 ? '#5DCAA5' : '#EF9F27';
+
+  el.innerHTML = `
+    <div class="verdict-box ${vClass}">
+      <div class="verdict-label">${vLabel}</div>
+      <div class="verdict-score">Skor AI: ${Math.round(score)}%</div>
+      <div class="verdict-desc">${vDesc}</div>
+    </div>
+    <div class="result-grid">
+      <div class="result-card">
+        <div class="result-name">BURSTINESS</div>
+        <div class="result-val">${burst.toFixed(1)}</div>
+        ${sig(burst<3&&sents.length>2, burst>7, 'monoton → AI', 'variatif → manusia', 'sedang')}
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(bPct)}%;background:${bColor}"></div></div>
+      </div>
+      <div class="result-card">
+        <div class="result-name">RATA-RATA KALIMAT</div>
+        <div class="result-val">${avgLen.toFixed(1)} <span style="font-size:12px;font-weight:400;color:var(--muted)">kata</span></div>
+        ${sig(avgLen>18, avgLen<10, 'panjang → AI', 'pendek → manusia', 'sedang')}
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Math.round(avgLen*4))}%;background:${avgLen>18?'#E24B4A':avgLen<10?'#5DCAA5':'#EF9F27'}"></div></div>
+      </div>
+      <div class="result-card">
+        <div class="result-name">AI PHRASE FINGERPRINT</div>
+        <div class="result-val">${phrases.length} <span style="font-size:12px;font-weight:400;color:var(--muted)">frasa</span></div>
+        ${sig(phrases.length>=3, phrases.length===0, 'formulaik → AI', 'bersih → manusia', 'sedikit')}
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,phrases.length*20)}%;background:${phrases.length>=3?'#E24B4A':phrases.length===0?'#5DCAA5':'#EF9F27'}"></div></div>
+      </div>
+      <div class="result-card">
+        <div class="result-name">INFORMAL MARKERS</div>
+        <div class="result-val">${informal} <span style="font-size:12px;font-weight:400;color:var(--muted)">kata</span></div>
+        ${sig(informal===0&&words.length>30, informal>=3, 'tidak ada → AI', 'natural → manusia', 'sedikit')}
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,informal*20)}%;background:${informal>=3?'#5DCAA5':informal===0?'#888885':'#EF9F27'}"></div></div>
+      </div>
+    </div>
+    ${phrases.length > 0 ? `
+    <div class="phrase-section">
+      <div class="phrase-label">FRASA AI YANG TERDETEKSI</div>
+      ${phrases.map(p=>`<span class="phrase-tag">${p}</span>`).join('')}
+    </div>` : ''}
+    <div class="disclaimer">
+      ⚠ Hasil ini adalah indikasi, bukan keputusan final. Akurasi terbatas pada heuristik tanpa model ML.
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
